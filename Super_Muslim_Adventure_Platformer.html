@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Super Muslim Adventure — Pengembaraan Ilmu</title>
+<style>
+:root{--ink:#17324d;--teal:#117d79;--gold:#ffd166;--cream:#fff9e8}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,Arial,sans-serif;background:linear-gradient(#bdefff,#fff5cf);color:var(--ink);touch-action:manipulation}
+.wrap{max-width:1000px;margin:auto;padding:12px}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+h1{font-size:clamp(20px,4vw,30px);margin:5px 0;color:#116e70}
+.pill{background:#fff;padding:7px 12px;border-radius:99px;font-weight:800;box-shadow:0 3px 0 #17324d18}
+#gameBox{position:relative;background:#a8e6ff;border:4px solid #fff;border-radius:18px;overflow:hidden;box-shadow:0 8px 22px #17324d22}
+canvas{display:block;width:100%;height:auto;touch-action:none}
+#hud{position:absolute;left:10px;right:10px;top:10px;display:flex;gap:6px;justify-content:space-between;flex-wrap:wrap;pointer-events:none}
+#hud span{background:#ffffffdf;padding:5px 9px;border-radius:9px;font-weight:800;font-size:clamp(12px,2vw,16px)}
+#overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#17324d77;padding:12px}
+.panel{width:min(560px,100%);max-height:95%;overflow:auto;background:#fffdf4;border:4px solid #fff;border-radius:20px;padding:18px;text-align:center;box-shadow:0 8px 0 #17324d22}
+.panel h2{margin:4px 0 10px;color:#117d79;font-size:clamp(22px,4vw,30px)}
+.panel p{line-height:1.45}
+button{border:0;border-radius:12px;padding:11px 14px;font-size:16px;font-weight:800;background:#117d79;color:white;cursor:pointer;touch-action:manipulation}
+button:disabled{opacity:.5}
+.btnGold{background:#ffd166;color:#17324d}
+input{width:100%;padding:12px;border:2px solid #c5dedb;border-radius:10px;font-size:17px;margin:4px 0 10px}
+label{display:block;text-align:left;font-weight:800}
+.answers{display:grid;gap:8px;margin-top:12px}
+.answers button{text-align:left;background:#eaf6f4;color:#17324d;border:2px solid #d3e9e5}
+.answers button.correct{background:#d6f5d8;border-color:#42a35a}
+.answers button.wrong{background:#ffe0dc;border-color:#d45c52}
+#controls{display:flex;justify-content:space-between;gap:12px;margin-top:10px;align-items:center}
+.pad{display:flex;gap:10px}
+.ctrl{width:64px;height:56px;font-size:24px;background:#17324d;border:3px solid #fff;box-shadow:0 4px 0 #0e2539;border-radius:15px;padding:0;touch-action:none}
+#jump{width:100px;background:#f0a83b;color:#17324d}
+.note{font-size:12px;opacity:.8;text-align:center;margin:10px 0}
+.hidden{display:none!important}
+.worldlist{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.worldcard{padding:10px;border-radius:12px;background:#eaf6f4;text-align:left;font-weight:800}
+@media(min-width:700px){.worldlist{grid-template-columns:repeat(5,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>🌙 Super Muslim Adventure</h1>
+<div class="pill" id="headerPlayer">Pengembaraan Ilmu • Tahun 6</div>
+</header>
+<div id="gameBox">
+<canvas id="game" width="900" height="500" aria-label="Permainan platform pengembaraan"></canvas>
+<div id="hud" class="hidden">
+<span id="hudWorld">🌿 Dunia Akidah</span><span id="hudCoins">🪙 0</span><span id="hudScore">⭐ 0</span><span id="hudLevel">Peringkat 1</span>
+</div>
+<div id="overlay">
+<div class="panel" id="startPanel">
+<h2>🦸 Pengembaraan Bermula!</h2>
+<p>Berlari, melompat, kutip syiling dan cari peti ilmu. Jawab soalan Pendidikan Islam untuk membuka laluan ke dunia seterusnya.</p>
+<label for="name">Nama penuh murid</label><input id="name" autocomplete="name" placeholder="Contoh: Ahmad bin Ali">
+<label for="klass">Kelas</label><input id="klass" placeholder="Contoh: 6 Khaldun">
+<div class="worldlist">
+<div class="worldcard">💚 Dunia Akidah</div><div class="worldcard">🕌 Dunia Ibadah</div><div class="worldcard">📖 Dunia Al-Quran</div><div class="worldcard">🕋 Dunia Sirah</div><div class="worldcard">🌟 Dunia Akhlak</div>
+</div>
+<button class="btnGold" id="start">MULA PENGEMBARAAN ▶</button>
+<p class="note">Kawalan: butang ◀ ▶ dan LOMPAT. Pada komputer, guna kekunci anak panah / ruang.</p>
+</div>
+<div class="panel hidden" id="quizPanel">
+<h2 id="quizTitle">📦 Peti Ilmu!</h2><p id="quizQuestion"></p><div id="quizAnswers" class="answers"></div><p id="quizFeedback" aria-live="polite"></p><button id="continue" class="btnGold hidden">Teruskan ➜</button>
+</div>
+<div class="panel hidden" id="resultPanel">
+<h2>🏆 Pengembaraan Selesai!</h2><p id="resultText"></p><p id="saveStatus">Menyediakan rekod…</p><button id="playAgain" class="btnGold">Main semula</button>
+</div>
+</div>
+</div>
+<div id="controls" class="hidden">
+<div class="pad"><button class="ctrl" id="left" aria-label="Gerak kiri">◀</button><button class="ctrl" id="right" aria-label="Gerak kanan">▶</button></div>
+<button class="ctrl" id="jump">⬆ LOMPAT</button>
+</div>
+<p class="note">Permainan platform 2D dengan watak dan grafik asli. Elakkan musuh kartun, kumpul syiling dan jawab cabaran.</p>
+</div>
+<script>
+(()=>{
+const WEB_APP_URL='https://script.google.com/macros/s/AKfycbzHpBxlH0IR5zwgfg-CduT5FKhcf8_0oXWpGVWZBcagRGDYaea_jgHD-fLro_rxlA1QGQ/exec';
+const worlds=[
+{name:'Dunia Akidah',emoji:'💚',sky:'#b9f1ff',ground:'#4ca66b',questions:[
+['Apakah maksud beriman kepada rasul?',['Percaya bahawa Allah mengutus rasul untuk membimbing manusia','Percaya semua manusia ialah rasul','Menganggap rasul tidak perlu ditaati','Menyembah rasul'],0],
+['Apakah kitab yang diturunkan kepada Nabi Muhammad SAW?',['Taurat','Zabur','Al-Quran','Injil'],2],
+['Sifat wajib bagi rasul yang bermaksud benar ialah…',['Amanah','Siddiq','Tabligh','Fatanah'],1],
+['Kita memohon pertolongan dan berdoa kepada…',['Allah SWT','Benda keramat','Malaikat sebagai sembahan','Manusia yang telah meninggal dunia'],0],
+['Apakah lawan kepada sifat amanah?',['Sabar','Jujur','Khianat','Bijaksana'],2]]},
+{name:'Dunia Ibadah',emoji:'🕌',sky:'#c5f5e8',ground:'#48a999',questions:[
+['Berapakah bilangan solat fardu sehari semalam?',['Tiga','Empat','Lima','Enam'],2],
+['Apakah yang dilakukan untuk bersuci apabila tiada air dan memenuhi syarat tayamum?',['Terus solat tanpa bersuci','Bertayamum','Mandi wajib','Mengulang azan'],1],
+['Solat secara berjemaah diketuai oleh…',['Makmum','Imam','Bilal sahaja','Musafir'],1],
+['Antara berikut, yang manakah membatalkan wuduk?',['Membaca buku','Tidur nyenyak','Berzikir','Memberi salam'],1],
+['Apakah tujuan berpuasa pada bulan Ramadan?',['Melatih takwa dan ketaatan kepada Allah','Supaya dipuji orang','Mengelakkan semua aktiviti','Menggantikan solat'],0]]},
+{name:'Dunia Al-Quran',emoji:'📖',sky:'#cce8ff',ground:'#6b9c55',questions:[
+['Apakah kitab suci umat Islam?',['Al-Quran','Buku sejarah','Taurat sahaja','Zabur sahaja'],0],
+['Apakah adab ketika membaca Al-Quran?',['Bermain sambil membaca','Menjaga kebersihan dan menghormati Al-Quran','Meletakkannya di lantai dengan sengaja','Bercakap kuat tanpa keperluan'],1],
+['Apakah maksud tajwid secara umum?',['Ilmu membaca Al-Quran dengan betul','Ilmu mengira harta','Ilmu menulis karangan','Ilmu sejarah peperangan'],0],
+['Apabila guru membetulkan bacaan Al-Quran, kita patut…',['Marah','Mengabaikan teguran','Mendengar dan membaiki bacaan','Berhenti belajar'],2],
+['Apakah sikap yang baik ketika mendengar bacaan Al-Quran?',['Bising','Bermain telefon','Mendengar dengan tertib','Mengganggu rakan'],2]]},
+{name:'Dunia Sirah',emoji:'🕋',sky:'#ffe8b8',ground:'#c79b4d',questions:[
+['Di manakah Nabi Muhammad SAW dilahirkan?',['Madinah','Makkah','Taif','Baitulmaqdis'],1],
+['Siapakah ibu Nabi Muhammad SAW?',['Khadijah binti Khuwailid','Aminah binti Wahab','Fatimah binti Asad','Halimah al-Sa’diyah'],1],
+['Siapakah sahabat yang menemani Nabi ketika hijrah ke Madinah?',['Abu Bakar al-Siddiq','Abu Lahab','Abu Jahal','Bilal bin Rabah'],0],
+['Apakah nama gua tempat Nabi dan Abu Bakar berlindung ketika hijrah?',['Gua Hira’','Gua Thur','Gua Uhud','Gua Safa'],1],
+['Apakah pengajaran daripada peristiwa hijrah?',['Berputus asa apabila susah','Merancang dengan baik dan bertawakal kepada Allah','Meninggalkan tanggungjawab','Tidak membantu orang lain'],1]]},
+{name:'Dunia Akhlak',emoji:'🌟',sky:'#f4d9ff',ground:'#a87ac8',questions:[
+['Apakah tindakan yang betul apabila melihat rakan dibuli?',['Merakam dan menyebarkan video','Menyertai pembuli','Membantu dengan selamat dan melapor kepada guru','Mengejek mangsa'],2],
+['Apakah adab berkomunikasi yang baik?',['Menggunakan kata-kata sopan','Mencela orang','Memotong percakapan','Menyebarkan rahsia'],0],
+['Jika melakukan kesalahan kepada rakan, kita patut…',['Menyalahkan orang lain','Meminta maaf dan membaiki kesalahan','Berpura-pura tidak tahu','Mengejek rakan'],1],
+['Apakah contoh amanah di sekolah?',['Meniru kerja rakan','Memulangkan barang yang dipinjam','Menyembunyikan barang orang','Menipu guru'],1],
+['Apabila menerima berita yang belum pasti benar, kita hendaklah…',['Terus menyebarkannya','Menambah cerita','Menyemak kesahihan dahulu','Menyalahkan orang'],2]]}
+];
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+let state='start',playerName='',playerClass='',world=0,score=0,coins=0,questionIndex=0,worldQuestion=0,answered=false,worldDone=false,animation=0,frame=0;
+let player={x:60,y:350,w:34,h:48,vx:0,vy:0,onGround:false,dir:1};
+let camera=0, platforms=[],coinItems=[],enemies=[],chest=null,keys={left:false,right:false};
+const W=900,H=500,gravity=.62;
+function buildLevel(){
+  player.x=55;player.y=340;player.vx=0;player.vy=0;camera=0;
+  platforms=[{x:0,y:430,w:210,h:70},{x:250,y:390,w:130,h:24},{x:420,y:350,w:125,h:24},{x:585,y:395,w:140,h:24},{x:760,y:340,w:140,h:24},{x:940,y:430,w:230,h:70},{x:1210,y:385,w:130,h:24},{x:1390,y:345,w:130,h:24},{x:1570,y:405,w:150,h:24},{x:1760,y:430,w:260,h:70}];
+  coinItems=[];for(let x=275;x<1850;x+=105)coinItems.push({x,y:310+(Math.floor(x/105)%3)*20,taken:false});
+  enemies=[{x:480,y:320,w:30,h:30,lo:430,hi:530,dir:1},{x:990,y:400,w:32,h:30,lo:950,hi:1120,dir:-1},{x:1630,y:375,w:32,h:30,lo:1580,hi:1700,dir:1}];
+  chest={x:1830,y:380,w:42,h:48,opened:false};
+}
+function draw(){
+  frame++;
+  const ww=worlds[world]||worlds[0];
+  ctx.fillStyle=ww.sky;ctx.fillRect(0,0,W,H);
+  // clouds and sun
+  ctx.fillStyle='#ffffffb8';for(let i=0;i<5;i++){let x=((i*205-frame*.25)%(W+150)+W+150)%(W+150)-50;ctx.beginPath();ctx.arc(x,75+(i%2)*25,22,0,Math.PI*2);ctx.arc(x+24,68+(i%2)*25,29,0,Math.PI*2);ctx.arc(x+52,78+(i%2)*25,20,0,Math.PI*2);ctx.fill();}
+  ctx.fillStyle='#ffdc70';ctx.beginPath();ctx.arc(790,75,34,0,Math.PI*2);ctx.fill();
+  // distant hills
+  ctx.fillStyle='#ffffff55';for(let i=0;i<7;i++){ctx.beginPath();ctx.ellipse(i*170-camera*.12,420,115,110,0,Math.PI,Math.PI*2);ctx.fill();}
+  ctx.save();ctx.translate(-camera,0);
+  platforms.forEach((p,i)=>{ctx.fillStyle=ww.ground;ctx.fillRect(p.x,p.y,p.w,p.h);ctx.fillStyle='#7edb8b';ctx.fillRect(p.x,p.y,p.w,8);for(let x=p.x+12;x<p.x+p.w;x+=30){ctx.fillStyle='#ffffff20';ctx.fillRect(x,p.y+14,13,4);}});
+  coinItems.forEach(c=>{if(c.taken)return;ctx.fillStyle='#f4a91f';ctx.beginPath();ctx.ellipse(c.x,c.y,11,14,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff0a0';ctx.lineWidth=3;ctx.stroke();ctx.fillStyle='#a86a0c';ctx.font='bold 14px Arial';ctx.fillText('★',c.x-6,c.y+5);});
+  enemies.forEach(e=>{ctx.fillStyle='#8b5b9a';ctx.beginPath();ctx.ellipse(e.x+e.w/2,e.y+e.h/2,e.w/2,e.h/2,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='white';ctx.beginPath();ctx.arc(e.x+10,e.y+11,5,0,Math.PI*2);ctx.arc(e.x+22,e.y+11,5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#17324d';ctx.fillRect(e.x+9,e.y+10,3,5);ctx.fillRect(e.x+21,e.y+10,3,5);ctx.fillStyle='#53375c';ctx.fillRect(e.x+8,e.y+24,16,4);});
+  if(chest){ctx.fillStyle=chest.opened?'#9b8c68':'#a75b2b';ctx.fillRect(chest.x,chest.y+13,chest.w,chest.h-13);ctx.fillStyle='#f7c94d';ctx.fillRect(chest.x,chest.y+23,chest.w,8);ctx.fillStyle='#d78b38';ctx.fillRect(chest.x-3,chest.y+8,chest.w+6,14);ctx.fillStyle='#ffe69a';ctx.fillRect(chest.x+17,chest.y+23,8,12);if(!chest.opened){ctx.fillStyle='#fff';ctx.font='bold 20px Arial';ctx.fillText('?',chest.x+15,chest.y-5);}}
+  // exit portal
+  ctx.fillStyle='#ffffffaa';ctx.beginPath();ctx.ellipse(1970,380,28,50,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#8d73dd';ctx.beginPath();ctx.ellipse(1970,380,17,38,0,0,Math.PI*2);ctx.fill();
+  drawHero(player.x,player.y,player.dir);
+  ctx.restore();
+  if(state==='map'){drawMap();}
+  if(state==='play'){moveGame();}
+  requestAnimationFrame(draw);
+}
+function drawHero(x,y,dir){
+  // original Muslim adventurer: teal hood/cap, cape, tunic
+  ctx.save();ctx.translate(x+player.w/2,y);ctx.scale(dir,1);
+  ctx.fillStyle='#df665c';ctx.beginPath();ctx.moveTo(-7,16);ctx.lineTo(-24,40);ctx.lineTo(-6,36);ctx.lineTo(4,21);ctx.fill();
+  ctx.fillStyle='#137e79';ctx.fillRect(-13,17,26,23);
+  ctx.fillStyle='#f3c18e';ctx.beginPath();ctx.arc(0,10,12,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#174b5a';ctx.beginPath();ctx.arc(0,7,13,Math.PI,Math.PI*2);ctx.lineTo(13,10);ctx.lineTo(-13,10);ctx.fill();
+  ctx.fillStyle='#fff';ctx.fillRect(-7,8,4,5);ctx.fillRect(4,8,4,5);ctx.fillStyle='#17324d';ctx.fillRect(-6,10,2,3);ctx.fillRect(5,10,2,3);
+  ctx.fillStyle='#ffd166';ctx.fillRect(-4,23,8,5);
+  ctx.fillStyle='#17324d';ctx.fillRect(-10,40,8,8);ctx.fillRect(3,40,8,8);
+  ctx.restore();
+}
+function moveGame(){
+ if(state!=='play')return;
+ player.vx=(keys.right?3.3:0)-(keys.left?3.3:0);if(player.vx)player.dir=player.vx>0?1:-1;
+ player.x+=player.vx;player.vy+=gravity;player.y+=player.vy;player.onGround=false;
+ platforms.forEach(p=>{if(player.x+player.w>p.x&&player.x<p.x+p.w&&player.y+player.h>=p.y&&player.y+player.h<=p.y+18&&player.vy>=0){player.y=p.y-player.h;player.vy=0;player.onGround=true;}});
+ if(player.y>H+100){player.x=Math.max(40,player.x-80);player.y=280;player.vy=0;}
+ player.x=Math.max(0,Math.min(1980,player.x));camera=Math.max(0,Math.min(1120,player.x-300));
+ coinItems.forEach(c=>{if(!c.taken&&Math.abs((player.x+player.w/2)-c.x)<24&&Math.abs((player.y+player.h/2)-c.y)<35){c.taken=true;coins++;updateHud();}});
+ enemies.forEach(e=>{e.x+=e.dir*1.1;if(e.x<e.lo||e.x>e.hi)e.dir*=-1;if(player.x+player.w>e.x&&player.x<e.x+e.w&&player.y+player.h>e.y&&player.y<e.y+e.h){player.x=Math.max(20,player.x-85);player.vy=-4;}});
+ if(chest&&!chest.opened&&player.x+player.w>chest.x-8&&player.x<chest.x+chest.w+8&&player.y+player.h>chest.y-5){chest.opened=true;openQuiz();}
+ if(player.x>1930&&worldQuestion>=5){if(world<4){world++;worldQuestion=0;buildLevel();state='play';updateHud();}else finishGame();}
+}
+function updateHud(){ $('hudWorld').textContent=worlds[world].emoji+' '+worlds[world].name;$('hudCoins').textContent='🪙 '+coins;$('hudScore').textContent='⭐ '+score;$('hudLevel').textContent='Dunia '+(world+1)+'/5';}
+function openQuiz(){
+ state='quiz';keys.left=keys.right=false;answered=false;
+ const q=worlds[world].questions[worldQuestion];
+ $('quizTitle').textContent='📦 Cabaran Ilmu • '+worlds[world].name;
+ $('quizQuestion').textContent=(worldQuestion+1)+' / 5 — '+q[0];
+ $('quizFeedback').textContent='Pilih jawapan yang betul untuk membuka peti!';
+ $('quizAnswers').innerHTML='';$('continue').classList.add('hidden');
+ q[1].forEach((a,i)=>{const b=document.createElement('button');b.textContent=String.fromCharCode(65+i)+'. '+a;b.onclick=()=>answerQuiz(i,b);$('quizAnswers').appendChild(b);});
+ $('overlay').classList.remove('hidden');$('quizPanel').classList.remove('hidden');$('startPanel').classList.add('hidden');$('resultPanel').classList.add('hidden');
+}
+function answerQuiz(i,btn){
+ if(answered)return;answered=true;const q=worlds[world].questions[worldQuestion];const bs=[...$('quizAnswers').children];bs.forEach((b,j)=>{b.disabled=true;if(j===q[2])b.classList.add('correct');else if(j===i)b.classList.add('wrong');});
+ if(i===q[2]){score++;$('quizFeedback').textContent='✅ Betul! +1 mata dan peti ilmu terbuka.';}else{$('quizFeedback').textContent='❌ Belum tepat. Jawapan betul: '+q[1][q[2]];}
+ worldQuestion++;updateHud();$('continue').classList.remove('hidden');
+}
+$('continue').onclick=()=>{
+ $('overlay').classList.add('hidden');$('quizPanel').classList.add('hidden');state='play';
+ if(worldQuestion>=5){worldDone=true;chest.opened=true;player.x=1760;player.y=360;}
+ else{chest={x:1830,y:380,w:42,h:48,opened:false};}
+};
+function drawMap(){
+ ctx.fillStyle='#fff9e8';ctx.fillRect(0,0,W,H);
+ ctx.fillStyle='#b5e7ca';ctx.beginPath();ctx.ellipse(450,260,370,180,0,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle='#d1b37a';ctx.lineWidth=9;ctx.setLineDash([12,10]);ctx.beginPath();ctx.moveTo(90,370);ctx.bezierCurveTo(240,140,330,400,450,240);ctx.bezierCurveTo(560,80,690,370,810,150);ctx.stroke();ctx.setLineDash([]);
+ const pos=[[100,350],[270,210],[440,280],[610,160],[800,130]];
+ pos.forEach((p,i)=>{ctx.fillStyle=i<=world?'#ffd166':'#b7c3c9';ctx.beginPath();ctx.arc(p[0],p[1],37,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=5;ctx.stroke();ctx.font='30px Arial';ctx.textAlign='center';ctx.fillText(['💚','🕌','📖','🕋','🌟'][i],p[0],p[1]+10);ctx.fillStyle='#17324d';ctx.font='bold 15px Arial';ctx.fillText(worlds[i].name.replace('Dunia ',''),p[0],p[1]+58);});
+ ctx.textAlign='left';ctx.fillStyle='#17324d';ctx.font='bold 22px Arial';ctx.fillText('PETA PENGEMBARAAN ILMU',25,40);ctx.font='16px Arial';ctx.fillText('Tekan MULA untuk memasuki dunia pertama.',25,68);
+}
+function startGame(){
+ playerName=$('name').value.trim();playerClass=$('klass').value.trim();if(!playerName||!playerClass){alert('Sila isi nama penuh dan kelas dahulu.');return;}
+ world=0;score=0;coins=0;worldQuestion=0;worldDone=false;buildLevel();$('headerPlayer').textContent=playerName+' • '+playerClass;$('hud').classList.remove('hidden');$('controls').classList.remove('hidden');$('overlay').classList.add('hidden');state='play';updateHud();
+}
+function finishGame(){
+ state='result';$('hud').classList.add('hidden');$('controls').classList.add('hidden');$('overlay').classList.remove('hidden');$('resultPanel').classList.remove('hidden');$('startPanel').classList.add('hidden');$('quizPanel').classList.add('hidden');
+ const total=25,percent=Math.round(score/total*100);$('resultText').textContent=playerName+' • '+playerClass+' — Markah kuiz '+score+'/'+total+' ('+percent+'%), syiling dikumpul '+coins+'.';
+ $('saveStatus').textContent='Sedang cuba menghantar rekod ke Google Sheets…';
+ // Apps Script accepts JSON in text/plain; no-cors means response cannot be read, so verify the sheet after play.
+ fetch(WEB_APP_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=UTF-8'},body:JSON.stringify({nama:playerName,kelas:playerClass,markah:score,jumlah:total,syiling:coins})})
+ .then(()=>{$('saveStatus').textContent='Permintaan rekod dihantar. Sila semak Google Sheets untuk mengesahkan rekod tersimpan.';})
+ .catch(()=>{$('saveStatus').textContent='Penghantaran tidak dapat disahkan. Semak sambungan internet dan Google Sheets.';});
+}
+$('start').onclick=startGame;
+$('playAgain').onclick=()=>{state='start';$('overlay').classList.remove('hidden');$('resultPanel').classList.add('hidden');$('startPanel').classList.remove('hidden');$('headerPlayer').textContent='Pengembaraan Ilmu • Tahun 6';$('hud').classList.add('hidden');$('controls').classList.add('hidden');};
+function bindHold(id,key){const b=$(id);const down=e=>{e.preventDefault();keys[key]=true;};const up=e=>{e.preventDefault();keys[key]=false;};b.addEventListener('pointerdown',down);['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,up));}
+bindHold('left','left');bindHold('right','right');
+$('jump').addEventListener('pointerdown',e=>{e.preventDefault();if(player.onGround&&state==='play'){player.vy=-12;player.onGround=false;}});
+document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')keys.left=true;if(e.key==='ArrowRight')keys.right=true;if((e.key===' '||e.key==='ArrowUp')&&player.onGround&&state==='play'){player.vy=-12;player.onGround=false;}});
+document.addEventListener('keyup',e=>{if(e.key==='ArrowLeft')keys.left=false;if(e.key==='ArrowRight')keys.right=false;});
+buildLevel();draw();
+})();
+</script>
+</body>
+</html>
